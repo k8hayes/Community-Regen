@@ -1,4 +1,4 @@
-# community 
+# Community Regen Manuscript
 
 This repository contains data and statistical analyses used in the manuscript "The effect of multiple short interval fires on community and functional trait-based regeneration in boreal Alaska" (working title, in prep).
 
