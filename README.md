@@ -1,6 +1,6 @@
 # Community Regen Manuscript
 
-This repository contains data and statistical analyses used in the manuscript "The effect of multiple short interval fires on community and functional trait-based regeneration in boreal Alaska" (working title, in prep).
+This repository contains data and statistical analyses used in the manuscript "Boreal forest understory plant communities transform after one fire but demonstrate resilience to continued reburning" (in submission to American Journal of Botany).
 
 
-The data has been made available for reproducibility purposes. Please do not share these data without permission of Katherine Hayes, the lead author (katherine.hayes@ucdenver.edu).
+The data has been made available for reproducibility purposes. Please do not share these data or analyses without permission of lead authors Katherine Hayes (hayesk@caryinstitute.org) and Trevor Carter (trevor.carter@colostate.edu).

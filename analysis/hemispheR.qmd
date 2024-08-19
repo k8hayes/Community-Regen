@@ -1,0 +1,58 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+```{r}
+# install.packages("hemispheR")
+
+library(hemispheR)
+```
+
+
+```{r}
+
+index <- read.csv("data/canopy pictures/canopyPhoto_index.csv")
+
+# camera Sony nex6 with yashuramadoka true 180 fisheye, 4/7.3
+list.cameras
+list.lenses
+```
+
+
+```{r}
+
+ph10_0 <- import_fisheye(filename = "data/canopy pictures/10_0.JPG",
+                       circular = TRUE, display = TRUE)
+plot(ph10_0)
+
+ph10_0_bin <- binarize_fisheye(ph10_0, display = TRUE)
+plot(ph10_0_bin)
+
+
+ph10_0_data <- as.data.frame(ph10_0_bin) # 0 is canopy # 1 is sky
+length(which(ph10_0_data == 1)) / length(which(ph10_0_data == 0))
+
+```
+
+
+```{r}
+for( i in ){
+  photo <- import_fisheye(filename = "data/canopy pictures/10_0.JPG",
+                       circular = TRUE)
+  
+  photo_bin <- binarize_fisheye(photo)
+  
+  photo_data <- as.data.frame(photo_bin)
+  
+   # 0 is canopy # 1 is sky
+  ratio <- length(which(photo_data == 1)) / length(which(photo_data == 0))
+  percent <- length(which(photo_data == 1)) / nrow(photo_data)
+  }
+
+
+
+
+
+```
