@@ -79,6 +79,8 @@ rm(file_list, file_path, folder_path,percentSky, ratio,
    photo_bin, photo, photoData)
 
 results <- left_join(results, index, by = join_by(plot, treat))
+
+write.csv(results, "data/canopyOpen.csv", row.names = FALSE)
 ```
 
 
