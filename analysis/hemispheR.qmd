@@ -6,18 +6,43 @@ editor: visual
 
 ```{r}
 # install.packages("hemispheR")
-
+library(tidyverse)
 library(hemispheR)
 ```
-
 
 ```{r}
 
 index <- read.csv("data/canopy pictures/canopyPhoto_index.csv")
 
+index <- index %>%
+  rename(plot = SITECODE, nfire = FIRES) %>%
+  filter(SITE == "DALTON") %>%
+  filter(plot != "32_2") %>%
+  filter(plot != "39_2") %>%
+  filter(plot != "56_2") %>%
+  filter(plot != "57_2") 
+  
+
+
 # camera Sony nex6 with yashuramadoka true 180 fisheye, 4/7.3
 list.cameras
 list.lenses
+```
+
+
+```{r}
+for(i in 1:nrow(index)) {
+  photo[i] <- hemispheR::import_fisheye(filename = paste0("data/canopy pictures/", index$plot[i], ".JPG"),
+                       circular = TRUE)
+}
+
+for (i in 1:nrow(index)) {
+  filename <-  index$plot[i]
+  wd <- paste0("data/canopy pictures/", index$plot[i], ".JPG")
+  assign(filename, import_fisheye(wd, circular = TRUE, 
+                                  message = FALSE))
+}
+
 ```
 
 
@@ -32,27 +57,103 @@ plot(ph10_0_bin)
 
 
 ph10_0_data <- as.data.frame(ph10_0_bin) # 0 is canopy # 1 is sky
+
 length(which(ph10_0_data == 1)) / length(which(ph10_0_data == 0))
 
 ```
 
-
 ```{r}
-for( i in ){
-  photo <- import_fisheye(filename = "data/canopy pictures/10_0.JPG",
+
+canopySkyRatio <- function(plotID) {
+   photo <- hemispheR::import_fisheye(filename = paste0("data/canopy pictures/", plotID, ".JPG"),
                        circular = TRUE)
   
   photo_bin <- binarize_fisheye(photo)
   
-  photo_data <- as.data.frame(photo_bin)
+  photoData <- as.data.frame(photo_bin)
   
-   # 0 is canopy # 1 is sky
-  ratio <- length(which(photo_data == 1)) / length(which(photo_data == 0))
-  percent <- length(which(photo_data == 1)) / nrow(photo_data)
+ ratio <- length(which(photoData == 1)) / length(which(photoData == 0))
+  percentSky <- length(which(photoData == 1)) / nrow(photoData)
+
+  return(ratio)
+  
+}
+
+canopySkyPercent <- function(plotID) {
+   photo <- hemispheR::import_fisheye(filename = paste0("data/canopy pictures/", plotID, ".JPG"),
+                       circular = TRUE)
+  
+  photo_bin <- binarize_fisheye(photo)
+  
+  photoData <- as.data.frame(photo_bin)
+  
+  percentSky <- length(which(photoData == 1)) / nrow(photoData)
+
+  return(percentSky)
+  
+}
+
+test <- canopySkyPercent("47_2")
+
+photoDataFrame <- data.frame(row.names = c("site", "ratio",
+                                           "percentSky"))
+
+for(i in 1:nrow(index)){
+
+  photoDataFrame$site <- index$plot[i]
+  
+  photoDataFrame$ratio <- canopySky(index$plot[i])
+  
+  photoDataFrame$percentSky <- canopySkyPercent(index$plot[i])
+  
+  return(photoDataFrame)
   }
 
 
 
+
+
+```
+
+
+
+```{r}
+# Define the path to your folder containing JPG files
+folder_path <- "data/canopy pictures/"
+
+# List all JPG files in the folder
+file_list <- list.files(path = folder_path, pattern = "\\.JPG$", full.names = TRUE)
+
+# Initialize an empty data frame to store results
+results <- data.frame(
+  site = character(),
+  ratio = integer(),
+  percentSky = integer(),
+  stringsAsFactors = FALSE
+)
+
+for (file_path in file_list) {
+  
+  photo <- hemispheR::import_fisheye(filename = file_path,
+                       circular = TRUE, message = FALSE)
+  
+  photo_bin <- binarize_fisheye(photo)
+  
+  photoData <- as.data.frame(photo_bin)
+  
+  ratio <- length(which(photoData == 1)) / length(which(photoData == 0))
+  
+  percentSky <- length(which(photoData == 1)) / nrow(photoData)
+  
+  # Append the results to the data frame
+  results <- rbind(results, data.frame(
+    site = file_path,
+    ratio = ratio,
+    percentSky = percentSky,
+    stringsAsFactors = FALSE
+  ))
+  
+}
 
 
 ```
