@@ -18,6 +18,9 @@ index <- read.csv("data/canopy pictures/canopyPhoto_index.csv",
 
 index <- index %>%
   rename(site = SITE, plot = SITECODE, treat = FIRES)
+```
+
+```{r}
 
 ph10_0 <- import_fisheye(filename = "data/canopy pictures/10_0.JPG",
                        circular = TRUE, display = TRUE)
@@ -53,7 +56,7 @@ for (file_path in file_list) {
   photo <- hemispheR::import_fisheye(filename = file_path,
                        circular = TRUE, message = FALSE)
   
-  photo_bin <- binarize_fisheye(photo)
+  photo_bin <- binarize_fisheye(photo, zonal = TRUE)
   
   photoData <- as.data.frame(photo_bin)
   
@@ -80,11 +83,36 @@ rm(file_list, file_path, folder_path,percentSky, ratio,
 
 results <- left_join(results, index, by = join_by(plot, treat))
 
+
+```
+
+```{r}
 write.csv(results, "data/canopyOpen.csv", row.names = FALSE)
+```
+
+```{r}
+ggplot(results, aes(x = as.factor(treat), y = percentSky, fill = site)) + geom_boxplot()
+
 ```
 
 
 ```{r}
-ggplot(results, aes(x = as.factor(treat), y = percentSky, fill = site)) + geom_boxplot()
+
+ph7_3 <- import_fisheye(filename = "data/canopy pictures/7_3.JPG",
+                       circular = TRUE, display = TRUE)
+plot(ph7_3)
+
+
+ph7_3_bin <- binarize_fisheye(ph7_3, display = TRUE)
+plot(ph7_3_bin)
+
+ph7_3_bin <- binarize_fisheye(ph7_3, zonal = TRUE, display = TRUE)
+
+ph7_3_bin <- binarize_fisheye(ph7_3, manual = 45, display = TRUE)
+
+
+ph7_3_data <- as.data.frame(ph7_3_bin) # 0 is canopy # 1 is sky
+
+length(which(ph7_3_data == 1)) / nrow(ph7_3_data)
 
 ```
