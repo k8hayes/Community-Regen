@@ -12,9 +12,10 @@ Code from Trevor, modified 9/05/2024, original in Reburns_Understory_updated.R
 ## all dependencies required to run the following analysis 
 library(tidyr)
 library(vegan)
-library(dplyr)
+library(tidyverse)
 library(MASS)
 library(pwr)
+library(cowplot)
 ```
 
 ```{r}
@@ -34,14 +35,24 @@ pseudo.R.squared <- function(model){
 } 
 ```
 
+```{r}
+#| label: load files
+understory <- read.csv("Upland_UndCover.csv") 
+FGkey <- read.csv("Understory_FG.csv") ## functional group key
+env <- read.csv("site_attributes.csv")
+soil <- read.csv("org_depth.csv")
+
+env <- env %>%
+    filter(SITE != "STEESE")
+
+soil <- soil %>%
+    filter(SITE != "STEESE")
+```
+
 # Data Cleaning
 
 ```{r}
 #| label: clean upland cover data
-
-## reading in the data
-
-understory <- read.csv("Upland_UndCover.csv") 
 understory$ORGANIC <- NULL ## removing non-species data
 understory$MINERAL <- NULL
 understory$ROCK <- NULL
@@ -72,7 +83,6 @@ length(unique(understory$PLOT)) ## making sure the number of plots match; they s
 #| label: add functional groups
 
 ## Functional Groups Adding ##
-FGkey <- read.csv("Understory_FG.csv") ## reading in the functional group key
 FGkey$Species <- sub(" ", ".", FGkey$Species) ## changing the species column to read the same as species in the understory dataframe
 
 understory_long$FG <- FGkey$Type[match(understory_long$species, FGkey$Species)]
@@ -85,17 +95,19 @@ unique(understory_long$species[is.na(understory_long$FG)])
 # Ptilium.crista.castrensis == Moss
 # Salix == decid shrub
 
-FGkey.addendum <- data.frame(Type = c("forb", "decid shrub", "Lichen",
-                                      "deciduous trees", "Moss", "decid shrub"),
-                             acronym = NA,
-                             Genus = NA,
-                             Species = unique(understory_long$species[is.na(understory_long$FG)]),
-                             Notes = NA)
-FGkey <- rbind(FGkey, FGkey.addendum);rm(FGkey.addendum)
+## Create addendum for species without functional groups
+FGkey <- FGkey %>%
+  bind_rows(data.frame(Type = c("forb", "decid shrub", "Lichen", "deciduous trees", "Moss", "decid shrub"),
+                       acronym = NA,
+                       Genus = NA,
+                       Species = unique(understory_long$species[is.na(understory_long$FG)]),
+                       Notes = NA))
 
-understory_long$FG <- FGkey$Type[match(understory_long$species, FGkey$Species)] ## adding final functional groups
+## Add final functional groups to understory_long
+understory_long <- understory_long %>%
+  mutate(FG = FGkey$Type[match(species, FGkey$Species)])
+
 unique(understory_long$species[is.na(understory_long$FG)]) ## no NAs so all species have an associated Functional Group
-
 
 length(unique(understory_long$species)) ## currently 72 unique species, but includes overstory species
 table(understory_long$FG) ## looking at the functional groups; per 1/17/2024 decided to lump FG to be a bit more common 
@@ -118,7 +130,7 @@ understory <- as.data.frame(apply(understory_wide, 1, sum, na.rm = TRUE)) ## get
 colnames(understory) <- "TotalPlotCover" ## renaming the column for later
 tmp <- as.data.frame(ifelse(understory_wide[,] > 0,1,0)) ## creating a Presence/Absence Richness Dataframe
 understory$Richness <- apply(tmp, 1, sum, na.rm = TRUE);rm(tmp) ## getting the count of each species
-understory$simpson <- diversity(understory_wide, index = "simpson") ## calculating simpson diversity index
+understory$simpson <- vegan::diversity(understory_wide, index = "simpson") ## calculating simpson diversity index
 understory$treatment <- as.factor(understory_plots$treat[match(rownames(understory), understory_plots$plot)])
 
 hist(understory$TotalPlotCover) 
@@ -138,7 +150,7 @@ pal2 <- c(rgb(0.96,0.84,0.27,0.5),rgb(0.89,0.36,0.18,0.5),rgb(0.51,0.12,0.41,0.5
 ## NMDS Ordination
 par(mfrow = c(1,2))
 set.seed(1)
-NMDSord <- metaMDS(understory_wide, try = 1000, distance = "bray") ## convergence
+NMDSord <- vegan::metaMDS(understory_wide, try = 1000, distance = "bray") ## convergence
 
 env <- data.frame(site = rownames(understory),
                   treatment = understory$treatment)
@@ -155,8 +167,6 @@ ordiellipse(NMDSord, display = "sites", env$treatment, draw = "lines",
             col = pal, label = FALSE) ## ellipses based on slide exposure
 legend("bottomright", legend = c("No Fire", "1 Fire", "2 Fires", "3 Fires"), col = pal, pch = 15, cex = 1, ncol = 2, bty = "n")
 ```
-
-
 
 ```{r}
 #| label: Bray-Curtis Dissimilarity analysis
@@ -765,11 +775,6 @@ rm(ze_bar);rm(ze_bar.0);rm(ze_bar.1);rm(ze_bar.2);rm(pal);rm(pal2);rm(Genera)
 
 # Table 1: GLM Results
 ```{r}
-env <- read.csv("site_attributes.csv")
-soil <- read.csv("org_depth.csv")
-env <- env[env$SITE != "STEESE",]
-soil <- soil[soil$SITE != "STEESE",]
-
 soil <- soil %>% 
   group_by(PLOT) %>% 
   summarise(ORG_DEPTH_cm = mean(ORG_DEPTH_cm)) 
