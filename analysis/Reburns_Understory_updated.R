@@ -719,144 +719,76 @@ rm(ze_bar);rm(ze_bar.0);rm(ze_bar.1);rm(ze_bar.2);rm(pal);rm(pal2);rm(Genera)
 #### Table 1 - GLM results ####
 env <- read.csv("site_attributes.csv")
 soil <- read.csv("org_depth.csv")
+light <- read.csv("canopyOpen.csv")
 env <- env[env$SITE != "STEESE",]
 soil <- soil[soil$SITE != "STEESE",]
+light <- light[light$site != "STEESE",]
 
 soil <- soil %>% 
   group_by(PLOT) %>% 
   summarise(ORG_DEPTH_cm = mean(ORG_DEPTH_cm)) 
 soil <- as.data.frame(soil) ## converting the tibble to a data frame
 
+table(light$plot)
 soil$PLOT[soil$PLOT == "7_3"] <- "07_3"
 soil$PLOT[soil$PLOT == "8_2"] <- "08_2"
+light$plot[light$plot == "7_3"] <- "07_3"
+light$plot[light$plot == "8_2"] <- "08_2"
 env$SITECODE[env$SITECODE == "7_3"] <- "07_3"
 env$SITECODE[env$SITECODE == "8_2"] <- "08_2"
 env <- env[order(env$SITECODE),]
 soil <- soil[order(soil$PLOT),]
+light <- light[order(light$plot),]
 
 understory <- cbind(understory, env)
 understory <- cbind(understory, soil)
+understory$percentSky <- light$percentSky[match(understory$PLOT, light$plot)]
 
-understory <- understory[,c(2:4,10,13,15)]
-
+understory <- understory[,c(2:4,10,13,15,16)]
 understory.burned <- understory[understory$treatment != 0,]
 
 
 par(mfrow = c(1,1))
-## writing a series of models and then have to make sure the effect sizes are standardized
-## three for richness
-m1 <- glm(Richness ~ SLOPE,
+#### Table 1 - GLM results (global model) ####
+## testing if we include a partial effects model for each what might happen
+## using these as it is an easier explanation
+m1 <- glm(Richness ~ percentSky + ORG_DEPTH_cm,
           data = understory.burned,
           family = poisson(link = "log"))
-summary(m1)
+m2 <- glm(Richness ~ SOLAR + ORG_DEPTH_cm,
+          data = understory.burned,
+          family = poisson(link = "log"))
+summary(m1);summary(m2)
 pseudo.R.squared(m1)
 plot(residuals(m1)); abline(h = 0, col = "red", lwd = 2, lty = 2)
 qqnorm(residuals(m1), pch = 16, cex = .75, col = rgb(0,0,0,0.75))
 qqline(residuals(m1), col = "red", lwd = 2, lty = 2)
 
-m2 <- glm(Richness ~ SOLAR,
-          data = understory.burned,
-          family = poisson(link = "log"))
-summary(m2)
-pseudo.R.squared(m2) 
+pseudo.R.squared(m2)
 plot(residuals(m2)); abline(h = 0, col = "red", lwd = 2, lty = 2)
 qqnorm(residuals(m2), pch = 16, cex = .75, col = rgb(0,0,0,0.75))
 qqline(residuals(m2), col = "red", lwd = 2, lty = 2)
 
-m3 <- glm(Richness ~ ORG_DEPTH_cm,
-          data = understory.burned,
-          family = poisson(link = "log"))
-summary(m3)
+
+m3 <- glm(simpson ~ percentSky + ORG_DEPTH_cm,
+          data = understory.burned)
+m4 <- glm(simpson ~ SOLAR + ORG_DEPTH_cm,
+          data = understory.burned)
+
+summary(m3);summary(m4)
 pseudo.R.squared(m3)
 plot(residuals(m3)); abline(h = 0, col = "red", lwd = 2, lty = 2)
 qqnorm(residuals(m3), pch = 16, cex = .75, col = rgb(0,0,0,0.75))
 qqline(residuals(m3), col = "red", lwd = 2, lty = 2)
 
-## three for diversity
-m4 <- glm(simpson ~ SLOPE,
-          data = understory.burned)
-summary(m4)
 pseudo.R.squared(m4)
 plot(residuals(m4)); abline(h = 0, col = "red", lwd = 2, lty = 2)
 qqnorm(residuals(m4), pch = 16, cex = .75, col = rgb(0,0,0,0.75))
 qqline(residuals(m4), col = "red", lwd = 2, lty = 2)
 
-m5 <- glm(simpson ~ SOLAR,
-          data = understory.burned)
-summary(m5)
-pseudo.R.squared(m5)
-plot(residuals(m5)); abline(h = 0, col = "red", lwd = 2, lty = 2)
-qqnorm(residuals(m5), pch = 16, cex = .75, col = rgb(0,0,0,0.75))
-qqline(residuals(m5), col = "red", lwd = 2, lty = 2)
-
-m6 <- glm(simpson ~ ORG_DEPTH_cm,
-          data = understory.burned)
-summary(m6)
-pseudo.R.squared(m6)
-plot(residuals(m6)); abline(h = 0, col = "red", lwd = 2, lty = 2)
-qqnorm(residuals(m6), pch = 16, cex = .75, col = rgb(0,0,0,0.75))
-qqline(residuals(m6), col = "red", lwd = 2, lty = 2)
-
-pwr.f2.test(u = 20,v = 21, f2 = NULL, sig.level = 0.05, power = 0.95)
-
-## getting standardized effect sizes from the predict function
-newdata.SLOPE <-data.frame(SLOPE = seq(min(understory.burned$SLOPE), max(understory.burned$SLOPE), length.out = 30))
-newdata.SOLAR <-data.frame(SOLAR = seq(min(understory.burned$SOLAR), max(understory.burned$SOLAR), length.out = 30))
-newdata.ORG_DEPTH <-data.frame(ORG_DEPTH_cm = seq(min(understory.burned$ORG_DEPTH_cm), max(understory.burned$ORG_DEPTH_cm), length.out = 30))
-
-preds1 <- predict(m1, newdata.SLOPE, type="response", se.fit = TRUE)
-(preds1$fit[30] - preds1$fit[1])/(newdata.SLOPE$SLOPE[30] - newdata.SLOPE$SLOPE[1]) ## average number of species increase per 1 degree of slope
-((preds1$fit[30] - 1.96*preds1$se.fit[30]) - (preds1$fit[1] - 1.96*preds1$se.fit[1]))/(newdata.SLOPE$SLOPE[30] - newdata.SLOPE$SLOPE[1]) ## lower bound of 95% CI increase in number of species per 1 degree of slope
-((preds1$fit[30] + 1.96*preds1$se.fit[30]) - (preds1$fit[1] + 1.96*preds1$se.fit[1]))/(newdata.SLOPE$SLOPE[30] - newdata.SLOPE$SLOPE[1]) ## upper bound of 95% CI increase in number of species per 1 degree of slope
-
-preds2 <- predict(m2, newdata.SOLAR, type="response", se.fit = TRUE)
-(preds2$fit[30] - preds2$fit[1])/(newdata.SOLAR$SOLAR[30] - newdata.SOLAR$SOLAR[1]) ## average number of species increase per 1 degree of slope
-((preds2$fit[30] - 1.96*preds2$se.fit[30]) - (preds2$fit[1] - 1.96*preds2$se.fit[1]))/(newdata.SOLAR$SOLAR[30] - newdata.SOLAR$SOLAR[1]) ## lower bound of 95% CI increase in number of species per 1 degree of slope
-((preds2$fit[30] + 1.96*preds2$se.fit[30]) - (preds2$fit[1] + 1.96*preds2$se.fit[1]))/(newdata.SOLAR$SOLAR[30] - newdata.SOLAR$SOLAR[1]) ## upper bound of 95% CI increase in number of species per 1 degree of slope
-
-preds3 <- predict(m3, newdata.ORG_DEPTH, type="response", se.fit = TRUE)
-(preds3$fit[30] - preds3$fit[1])/(newdata.ORG_DEPTH$ORG_DEPTH_cm[30] - newdata.ORG_DEPTH$ORG_DEPTH_cm[1]) ## average number of species increase per 1 degree of slope
-((preds3$fit[30] - 1.96*preds3$se.fit[30]) - (preds3$fit[1] - 1.96*preds3$se.fit[1]))/(newdata.ORG_DEPTH$ORG_DEPTH_cm[30] - newdata.ORG_DEPTH$ORG_DEPTH_cm[1]) ## lower bound of 95% CI increase in number of species per 1 degree of slope
-((preds3$fit[30] + 1.96*preds3$se.fit[30]) - (preds3$fit[1] + 1.96*preds3$se.fit[1]))/(newdata.ORG_DEPTH$ORG_DEPTH_cm[30] - newdata.ORG_DEPTH$ORG_DEPTH_cm[1]) ## upper bound of 95% CI increase in number of species per 1 degree of slope
-
-preds4 <- predict(m4, newdata.SLOPE, type="response", se.fit = TRUE)
-(preds4$fit[30] - preds4$fit[1])/(newdata.SLOPE$SLOPE[30] - newdata.SLOPE$SLOPE[1]) ## average diversity increase per 1 degree of slope
-((preds4$fit[30] - 1.96*preds4$se.fit[30]) - (preds4$fit[1] - 1.96*preds4$se.fit[1]))/(newdata.SLOPE$SLOPE[30] - newdata.SLOPE$SLOPE[1]) ## lower bound of 95% CI increase in diversity per 1 degree of slope
-((preds4$fit[30] + 1.96*preds4$se.fit[30]) - (preds4$fit[1] + 1.96*preds4$se.fit[1]))/(newdata.SLOPE$SLOPE[30] - newdata.SLOPE$SLOPE[1]) ## upper bound of 95% CI increase in diversity per 1 degree of slope
-
-preds5 <- predict(m5, newdata.SOLAR, type="response", se.fit = TRUE)
-(preds5$fit[30] - preds5$fit[1])/(newdata.SOLAR$SOLAR[30] - newdata.SOLAR$SOLAR[1]) ## average diversity increase per 1 degree of slope
-((preds5$fit[30] - 1.96*preds5$se.fit[30]) - (preds5$fit[1] - 1.96*preds5$se.fit[1]))/(newdata.SOLAR$SOLAR[30] - newdata.SOLAR$SOLAR[1]) ## lower bound of 95% CI increase in diversity per 1 degree of slope
-((preds5$fit[30] + 1.96*preds5$se.fit[30]) - (preds5$fit[1] + 1.96*preds5$se.fit[1]))/(newdata.SOLAR$SOLAR[30] - newdata.SOLAR$SOLAR[1]) ## upper bound of 95% CI increase in diversity per 1 degree of slope
-
-preds6 <- predict(m6, newdata.ORG_DEPTH, type="response", se.fit = TRUE)
-(preds6$fit[30] - preds6$fit[1])/(newdata.ORG_DEPTH$ORG_DEPTH_cm[30] - newdata.ORG_DEPTH$ORG_DEPTH_cm[1]) ## average diversity increase per 1 degree of slope
-((preds6$fit[30] - 1.96*preds6$se.fit[30]) - (preds6$fit[1] - 1.96*preds6$se.fit[1]))/(newdata.ORG_DEPTH$ORG_DEPTH_cm[30] - newdata.ORG_DEPTH$ORG_DEPTH_cm[1]) ## lower bound of 95% CI increase in diversity per 1 degree of slope
-((preds6$fit[30] + 1.96*preds6$se.fit[30]) - (preds6$fit[1] + 1.96*preds6$se.fit[1]))/(newdata.ORG_DEPTH$ORG_DEPTH_cm[30] - newdata.ORG_DEPTH$ORG_DEPTH_cm[1]) ## upper bound of 95% CI increase in diversity per 1 degree of slope
-
-
-#### Table 1 - GLM results (global model) ####
-## testing if we include a partial effects model for each what might happen
-## using these as it is an easier explanation
-m7 <- glm(Richness ~ SOLAR + ORG_DEPTH_cm,
-          data = understory.burned,
-          family = poisson(link = "log"))
-summary(m7)
-pseudo.R.squared(m7)
-plot(residuals(m7)); abline(h = 0, col = "red", lwd = 2, lty = 2)
-qqnorm(residuals(m7), pch = 16, cex = .75, col = rgb(0,0,0,0.75))
-qqline(residuals(m7), col = "red", lwd = 2, lty = 2)
-
-m8 <- glm(simpson ~ SOLAR + ORG_DEPTH_cm,
-          data = understory.burned)
-summary(m8)
-pseudo.R.squared(m8)
-plot(residuals(m8)); abline(h = 0, col = "red", lwd = 2, lty = 2)
-qqnorm(residuals(m8), pch = 16, cex = .75, col = rgb(0,0,0,0.75))
-qqline(residuals(m8), col = "red", lwd = 2, lty = 2)
-
-
 pwr.f2.test(u = 19,v = 21, f2 = NULL, sig.level = 0.05, power = 0.95)
+pwr.f2.test(u = 14,v = 16, f2 = NULL, sig.level = 0.05, power = 0.95)
+
 
 ## determining which species are present in which fire categories for supplement
 SpPl <- data.frame(Sp = unique(understory_long$species), Pl = NA)
