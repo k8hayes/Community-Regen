@@ -5,6 +5,7 @@ editor: visual
 ---
 
 ```{r}
+#| label: packages
 # install.packages("hemispheR")
 library(tidyverse)
 library(hemispheR)
@@ -16,13 +17,14 @@ theme_set(theme_cowplot())
 index <- read.csv("data/canopy pictures/canopyPhoto_index.csv",
                   stringsAsFactors = FALSE)
 
-index <- index %>%
-  rename(site = SITE, plot = SITECODE, treat = FIRES)
+index$PhotoID = as.numeric(index$PhotoID)
+
+summary(index)  
 ```
 
 ```{r}
 
-ph10_0 <- import_fisheye(filename = "data/canopy pictures/10_0.JPG",
+ph10_0 <- import_fisheye(filename = paste0("data/canopy pictures/DSC0", index$PhotoID[18], ".JPG"),
                        circular = TRUE, display = TRUE)
 plot(ph10_0)
 
@@ -45,7 +47,7 @@ file_list <- list.files(path = folder_path, pattern = "\\.JPG$", full.names = TR
 
 # Initialize an empty data frame to store results
 results <- data.frame(
-  plot = character(),
+  PhotoID = character(),
   ratio = integer(),
   percentSky = integer(),
   stringsAsFactors = FALSE
@@ -66,7 +68,7 @@ for (file_path in file_list) {
   
   # Append the results to the data frame
   results <- rbind(results, data.frame(
-    plot = file_path,
+    PhotoID = file_path,
     ratio = ratio,
     percentSky = percentSky,
     stringsAsFactors = FALSE
@@ -75,14 +77,15 @@ for (file_path in file_list) {
 }
 
 results <- results %>%
-  mutate(plot = sub(".JPG", "", sub(".*//", "", results$plot)),
-         treat = as.numeric(sub(".*_", "", plot)))
+    mutate(PhotoID = str_extract(PhotoID, "\\d{4}(?=\\.JPG)"))
+
+results$PhotoID <- as.numeric(results$PhotoID)
 
 rm(file_list, file_path, folder_path,percentSky, ratio, 
    photo_bin, photo, photoData)
 
-results <- left_join(results, index, by = join_by(plot, treat))
-
+results_full <- full_join(results, index,
+by = join_by(PhotoID))
 
 ```
 
