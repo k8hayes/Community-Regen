@@ -84,8 +84,11 @@ results$PhotoID <- as.numeric(results$PhotoID)
 rm(file_list, file_path, folder_path,percentSky, ratio, 
    photo_bin, photo, photoData)
 
-results_full <- full_join(results, index,
+results <- full_join(results, index,
 by = join_by(PhotoID))
+
+results <- results %>%
+  filter(Site != "Outtake")
 
 ```
 
